@@ -1,11 +1,11 @@
 **WORK IN PROGRESS**  
 This tool is currently a WIP.  
-Basic extraction works as but without guarantee for full functionality and text / audio completeness.  
+Basic extraction works as expected but without guarantee for full functionality and text / audio completeness.  
 Currently only Onikakushi supported.  
 Tested only on Linux thus far.  
 Some bugs are to be expected...
 
-# Higurashi When They Cry - Japanese Text Extractor ⛩️ 🇯🇵
+# Higurashi When They Cry - Japanese Text Extractor 🇯🇵
 
 This tool allows you to extract all Japanese text and dialogues from the "Higurashi When They Cry" games into an HTML format. The intended usage for this tool is to have the Japanese text of the games in an accessible interface to aid in learning Japanese.
 
@@ -22,31 +22,30 @@ You can use the extracted text to look up words with copy-paste or (more prefera
 
 ## How to use / Installation
 
-0. Install [Python](https://www.python.org/downloads/) on your system if you haven't yet
-1. Download the `extractor.py` file directly or by cloning this repository.
+1. Install [Python](https://www.python.org/downloads/) on your system if you haven't yet
+2. Download the `extractor.py` file directly (if you have the game installed) or by cloning this repository (if you wish to use externally provided game data).
 
----
+> Audio + Icon support:
 
--   Audio + Icon support:
+-   Install your desired game and install the [07th-mod](https://07th-mod.com/wiki/Higurashi/Higurashi-Getting-started/) for it
+-   Find the location of the **data folder** of your desired game on your system
+    > Example: .../steamapps/common/Higurashi When They Cry/**HigurashiEp01_Data/**
+-   Run the downloaded script and provide the **full path to the game's data folder** like so:  
+     `python extractor.py <path/to/HigurashiEpXX_Data/>`
 
-    1. Install your desired game and install the [07th-mod](https://07th-mod.com/wiki/Higurashi/Higurashi-Getting-started/) for it
-    2. Find the location of the **data folder** of your desired game on your system
-        > Example: .../steamapps/common/Higurashi When They Cry/**HigurashiEp01_Data/**
-    3. Run the downloaded script and provide the **full path to the game's data folder** like so: `python extractor.py path/to/HigurashiEpXX_Data/`
+> No Audio + Icon support:
 
----
+-   In the checked out repository, run `git submodule init` and `git submodule update`
+-   Run the downloaded script with the name of your desired chapter like so:  
+     `python3 extractor.py onikakushi`
+-   The script will produce a directory with a `main.html` file and various HTML files for all sections in the game. If you want, you can specify your own output directory like so:  
+     `python3 extractor.py <1st argument> /path/to/out`
 
--   No Audio + Icon support:
-    1. Run the downloaded script like so: `python3 extractor.py --`
-
----
-
-3. The script will produce a file called `main.html` and various HTML files for all sections in the game.
-4. Open the file in your web browser by...
+3. Open the file in your web browser by...
 
     > - dragging and dropping the main.html file into your browser window
     > - manually typing the local path to the main.html into your URL bar `file:///path/to/main.html`
 
-5. Choose any desired game sections and enjoy!
+4. Choose any desired game section from the list and enjoy!
 
 ## Troubleshooting
