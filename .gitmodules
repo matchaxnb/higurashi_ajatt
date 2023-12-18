@@ -1,3 +1,24 @@
 [submodule "07th_res/onikakushi"]
 	path = 07th_res/onikakushi
 	url = https://github.com/07th-mod/onikakushi
+[submodule "07th_res/watanagashi"]
+	path = 07th_res/watanagashi
+	url = https://github.com/07th-mod/watanagashi
+[submodule "07th_res/tatarigoroshi"]
+	path = 07th_res/tatarigoroshi
+	url = https://github.com/07th-mod/tatarigoroshi
+[submodule "07th_res/himatsubushi"]
+	path = 07th_res/himatsubushi
+	url = https://github.com/07th-mod/himatsubushi
+[submodule "07th_res/meakashi"]
+	path = 07th_res/meakashi
+	url = https://github.com/07th-mod/meakashi
+[submodule "07th_res/tsumihoroboshi"]
+	path = 07th_res/tsumihoroboshi
+	url = https://github.com/07th-mod/tsumihoroboshi
+[submodule "07th_res/minagoroshi"]
+	path = 07th_res/minagoroshi
+	url = https://github.com/07th-mod/minagoroshi
+[submodule "07th_res/matsuribayashi"]
+	path = 07th_res/matsuribayashi
+	url = https://github.com/07th-mod/matsuribayashi
