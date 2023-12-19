@@ -16,6 +16,8 @@ The chronological order of sections has not been verified, and it has not been t
 
 \* _requires manual installation of the game with 07th-mod_
 
+![screenshot of primary features](https://github.com/kitsugo/higurashi_ajatt/assets/32716622/59a9a318-c25a-4952-b489-c0abc1bf4869)
+
 ## How to use / Installation
 
 -   Install [Python](https://www.python.org/downloads/) on your system if you haven't yet
