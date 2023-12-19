@@ -6,26 +6,6 @@ import sys
 import re
 import os
 
-# Help info
-if len(sys.argv) <= 1 or sys.argv[1] == "help" or sys.argv[1] == "--help":
-    print(
-        """
-    Higurashi Japanese text extractor
-    python extractor.py <chapter or game location> <optional: output directory>
-    * To see this message use:
-        extractor.py --help
-
-    * To extract a chapter without audio support use:
-        extractor.py <name of chapter>
-        Ex: extractor.py onikakushi
-
-    * To extract a chapter with audio use:
-        extractor.py </path/to/HigurashiEpXX_Data/>
-        Ex: extractor.py ~/.local/share/Steam/steamapps/common/Higurashi\\ When\\ They\\ Cry/HigurashiEp01_Data/
-          """
-    )
-    exit(0)
-
 CHAPTERS = {
     "onikakushi": [
         ("onik_op", "Opening 1"),
@@ -459,40 +439,6 @@ extra_flag = False
 html_body = '<body style="background-color:black;color:white;">'
 html_table = '<div style="display:flex;flex-direction:column;" >'
 
-# Parse arguments
-if sys.argv[1] in CHAPTERS.keys():  # 07th-res installation
-    chapter = sys.argv[1]
-    script_path = "./07th_res/{}/Update/".format(chapter)
-    voice_path = "./07th_res/{}/voice/".format(chapter)
-    if os.path.exists(script_path) and os.path.exists(voice_path):
-        print(
-            "'{}' detected as chapter.\nExtracting WITHOUT audio support.".format(
-                chapter
-            )
-        )
-    else:
-        print("Cannot find the 07th-res submodules.")
-        exit(1)
-else:  # Manual game installation
-    game_location = sys.argv[1].rstrip("/")
-    script_path = "{}/StreamingAssets/Update/".format(game_location)
-    voice_path = "{}/StreamingAssets/voice/".format(game_location)
-    if os.path.exists(script_path) and os.path.exists(voice_path):
-        chapter_num = int(re.findall("Ep0(\d)", game_location)[0])
-        chapter = list(CHAPTERS.keys())[chapter_num - 1]
-        extra_flag = True
-        print(
-            "'{}' detected as chapter.\nExtracting WITH audio support.".format(
-                chapter)
-        )
-    else:
-        print("The provided path does not seem to be valid!")
-        exit(1)
-
-# Parse optional out directory arg
-if len(sys.argv) >= 3:
-    out_dir = sys.argv[2].rstrip("/")
-
 
 def color_to_html(input):
     color = COLOR_RE.findall(input)[0]
@@ -522,41 +468,96 @@ def actor_to_html_color(line):
     return
 
 
-print(out_dir)
-os.makedirs(os.path.dirname(out_dir + "/"), exist_ok=True)
-for script_name in CHAPTERS[chapter]:
-    out_file = open(
-        "{}/higurashi_{}.html".format(out_dir, script_name[0]), "w")
-    script_file = open(script_path + "{}.txt".format(script_name[0]), "r")
-    lines = script_file.readlines()
+if __name__ == "__main__":
+    # Help info
+    if len(sys.argv) <= 1 or sys.argv[1] == "help" or sys.argv[1] == "--help":
+        print(
+            """
+        Higurashi Japanese text extractor
+        python extractor.py <chapter or game location> <optional: output directory>
+        * To see this message use:
+            extractor.py --help
 
-    html_table += '<a href="./higurashi_{}.html">{}</a>'.format(
-        script_name[0], script_name[1]
-    )
-    out_file.write(html_body)
-    out_file.write('<a href="./main.html" >All chapters</a>')
+        * To extract a chapter without audio support use:
+            extractor.py <name of chapter>
+            Ex: extractor.py onikakushi
 
-    for line in lines:
-        stripped_line = line.strip().replace("\u3000", "")
-        split_line = stripped_line.split(",")
+        * To extract a chapter with audio use:
+            extractor.py </path/to/HigurashiEpXX_Data/>
+            Ex: extractor.py ~/.local/share/Steam/steamapps/common/Higurashi\\ When\\ They\\ Cry/HigurashiEp01_Data/
+              """
+        )
+        exit(0)
 
-        if stripped_line.startswith("OutputLine(NULL,"):  # Text line
-            out_file.write(line_to_html_paragraph(split_line))
+    # Parse arguments
+    if sys.argv[1] in CHAPTERS.keys():  # 07th-res installation
+        chapter = sys.argv[1]
+        script_path = "./07th_res/{}/Update/".format(chapter)
+        voice_path = "./07th_res/{}/voice/".format(chapter)
+        if os.path.exists(script_path) and os.path.exists(voice_path):
+            print(
+                "'{}' detected as chapter.\nExtracting WITHOUT audio support.".format(
+                    chapter
+                )
+            )
+        else:
+            print("Cannot find the 07th-res submodules.")
+            exit(1)
+    else:  # Manual game installation
+        game_location = sys.argv[1].rstrip("/")
+        script_path = "{}/StreamingAssets/Update/".format(game_location)
+        voice_path = "{}/StreamingAssets/voice/".format(game_location)
+        if os.path.exists(script_path) and os.path.exists(voice_path):
+            chapter_num = int(re.findall("Ep0(\d)", game_location)[0])
+            chapter = list(CHAPTERS.keys())[chapter_num - 1]
+            extra_flag = True
+            print(
+                "'{}' detected as chapter.\nExtracting WITH audio support.".format(
+                    chapter
+                )
+            )
+        else:
+            print("The provided path does not seem to be valid!")
+            exit(1)
 
-        result = ACTOR_COLOR_RE.search(line)
-        if result is not None:
-            out_file.write(color_to_html(result.group(0)))
+    # Parse optional out directory arg
+    if len(sys.argv) >= 3:
+        out_dir = sys.argv[2].rstrip("/")
 
-        if extra_flag and stripped_line.startswith("ModPlayVoiceLS"):
-            out_file.write(voice_to_html_audio(split_line))
+    os.makedirs(os.path.dirname(out_dir + "/"), exist_ok=True)
+    for script_name in CHAPTERS[chapter]:
+        out_file = open(
+            "{}/higurashi_{}.html".format(out_dir, script_name[0]), "w")
+        script_file = open(script_path + "{}.txt".format(script_name[0]), "r")
+        lines = script_file.readlines()
 
-    out_file.write('<a href="./main.html" >All chapters</a>')
-    out_file.write("</body>")
-    out_file.close()
-    script_file.close()
+        html_table += '<a href="./higurashi_{}.html">{}</a>'.format(
+            script_name[0], script_name[1]
+        )
+        out_file.write(html_body)
+        out_file.write('<a href="./main.html" >All chapters</a>')
 
-main_file = open("{}/main.html".format(out_dir), "w")
-main_file.write(html_body)
-main_file.write(chapter)
-main_file.write(html_table + "</div>" + "</body>")
-main_file.close()
+        for line in lines:
+            stripped_line = line.strip().replace("\u3000", "")
+            split_line = stripped_line.split(",")
+
+            if stripped_line.startswith("OutputLine(NULL,"):  # Text line
+                out_file.write(line_to_html_paragraph(split_line))
+
+            result = ACTOR_COLOR_RE.search(line)
+            if result is not None:
+                out_file.write(color_to_html(result.group(0)))
+
+            if extra_flag and stripped_line.startswith("ModPlayVoiceLS"):
+                out_file.write(voice_to_html_audio(split_line))
+
+        out_file.write('<a href="./main.html" >All chapters</a>')
+        out_file.write("</body>")
+        out_file.close()
+        script_file.close()
+
+    main_file = open("{}/main.html".format(out_dir), "w")
+    main_file.write(html_body)
+    main_file.write(chapter)
+    main_file.write(html_table + "</div>" + "</body>")
+    main_file.close()

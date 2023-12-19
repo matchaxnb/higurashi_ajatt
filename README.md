@@ -4,8 +4,8 @@ This tool allows you to extract all Japanese text and dialogues from the "Higura
 
 You can use the extracted text to look up words with copy-paste or open the HTML format in your browser with a dictionary tool like [Rikaitain](https://github.com/Ajatt-Tools/rikaitan#rikaitan) to utilize features like automatic [Anki](https://tatsumoto.neocities.org/blog/setting-up-yomichan#anki-settings) card generation.
 
-This tool is still a WIP.  
-Extraction is not supported for all games and chronological order of sections has not been verified.
+This tool is still a somewhat a WIP.  
+The chronological order of sections has not been verified, and it has not been tested that 100% of all data is extracted without any minor losses.
 
 ## Features
 
