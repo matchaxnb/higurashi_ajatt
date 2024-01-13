@@ -5,6 +5,8 @@
 import sys
 import re
 import os
+import typing
+
 
 CHAPTERS = {
     "onikakushi": [
@@ -26,26 +28,26 @@ CHAPTERS = {
         ("onik_015", "Day 15.1"),
         ("onik_015_02", "Day 15.2"),
         ("onik_015_03", "Day 15.3"),
-        ("onik_tips_01", "Tip 1"),
-        ("onik_tips_02", "Tip 2"),
-        ("onik_tips_03", "Tip 3"),
-        ("onik_tips_04", "Tip 4"),
-        ("onik_tips_05", "Tip 5"),
-        ("onik_tips_06", "Tip 6"),
-        ("onik_tips_07", "Tip 7"),
-        ("onik_tips_08", "Tip 8"),
-        ("onik_tips_09", "Tip 9"),
-        ("onik_tips_10", "Tip 10"),
-        ("onik_tips_11", "Tip 11"),
-        ("onik_tips_12", "Tip 12"),
-        ("onik_tips_13", "Tip 13"),
-        ("onik_tips_14", "Tip 14"),
-        ("onik_tips_15", "Tip 15"),
-        ("onik_tips_16", "Tip 16"),
-        ("onik_tips_17", "Tip 17"),
-        ("onik_tips_18", "Tip 18"),
-        ("onik_tips_19", "Tip 19"),
-        ("onik_tips_20", "Tip 20"),
+        ("onik_tips_01", "Tip 1: うちって学年混在？"),
+        ("onik_tips_02", "Tip 2: うちって制服自由？"),
+        ("onik_tips_03", "Tip 3: 前原屋敷"),
+        ("onik_tips_04", "Tip 4: ダム現場のバラバラ殺人"),
+        ("onik_tips_05", "Tip 5: 雛見沢ダム計画"),
+        ("onik_tips_06", "Tip 6: 週刊誌の特集記事"),
+        ("onik_tips_07", "Tip 7: レナってどういう名前だよ？"),
+        ("onik_tips_08", "Tip 8: 回覧板"),
+        ("onik_tips_09", "Tip 9: ダム推進派の夫婦の転落事故"),
+        ("onik_tips_10", "Tip 10: 古手神社の神主の病死"),
+        ("onik_tips_11", "Tip 11: 主婦殺人事件"),
+        ("onik_tips_12", "Tip 12: 無線記録"),
+        ("onik_tips_13", "Tip 13: 犯人は４人以上？"),
+        ("onik_tips_14", "Tip 14: 捜査メモ"),
+        ("onik_tips_15", "Tip 15: 本部長通達"),
+        ("onik_tips_16", "Tip 16: 自殺を誘発するクスリは？"),
+        ("onik_tips_17", "Tip 17: 脅迫"),
+        ("onik_tips_18", "Tip 18: 元気ないね。"),
+        ("onik_tips_19", "Tip 19: 二重人格？？？"),
+        ("onik_tips_20", "Tip 20: セブンスマートにて"),
         ("omake_01", "All-Cast Review"),
     ],
     "watanagashi": [
@@ -430,9 +432,15 @@ CHAPTERS = {
 ACTOR_COLOR_RE = re.compile("<.*?</color>")
 COLOR_RE = re.compile("=(.*?)>")
 ACTOR_RE = re.compile(">(.*?)<")
+SUBSCRIPT_CONDITION_RE = re.compile(
+    r"GetGlobalFlag\(GCensor\)\s*(>=|<=|>|<|==)(\s*)(\d*)"
+)
+SUBSCRIPT_RE = re.compile(r"ModCallScriptSection\(\"(.*?)\",\"(.*?)\"\)")
+DIALOG_CALL_RE = re.compile(r"void dialog(\d*)\(\)")
 
 out_dir = "./out/"
 chapter = ""
+censor_level = 2
 script_path = ""
 voice_path = ""
 extra_flag = False
@@ -440,6 +448,58 @@ html_body = '<body style="background-color:black;color:white;">'
 html_table = '<div style="display:flex;flex-direction:column;" >'
 
 
+# Calls a subscript by parsing the subscript file and extracting all relevant lines specified by the dialog_start
+# Returns a list of all lines occuring in that dialog
+def call_subscript(subscript_filename: str, dialog_start: str) -> list[str]:
+    script_file = open(script_path + "{}.txt".format(subscript_filename), "r")
+    lines = script_file.readlines()
+    write_files = False
+    output_lines = []
+
+    for line in lines:
+        if dialog_start in line:
+            write_files = True
+            continue
+        if write_files:
+            if DIALOG_CALL_RE.match(line):
+                write_files = False
+                break
+            else:
+                output_lines.append(line)
+    script_file.close()
+    return output_lines
+
+
+# Checks whether a given line is a condition to call a subscript and evalutes that condition based on the set censor_level
+# Returns the evaluation of the condition as a boolean
+def evaluate_subscript_condition(line: str):
+    condition_match = SUBSCRIPT_CONDITION_RE.search(line)
+    condition = False
+    if condition_match:
+        relation = condition_match.group(1)
+        operand = condition_match.group(3)
+        match relation:
+            case "==":
+                condition = censor_level == int(operand)
+            case "<=":
+                condition = censor_level <= int(operand)
+            case ">=":
+                condition = censor_level >= int(operand)
+            case "<":
+                condition = censor_level < int(operand)
+            case ">":
+                condition = censor_level > int(operand)
+    return condition
+
+
+# Excract subscript filename and the dialogue function from a subscript call
+def extract_subscript_args(line):
+    subscript_match = SUBSCRIPT_RE.search(line)
+    if subscript_match:
+        return [subscript_match.group(1), subscript_match.group(2)]
+
+
+# Parse actor and color into HTML
 def color_to_html(input):
     color = COLOR_RE.findall(input)[0]
     character = ACTOR_RE.findall(input)[0]
@@ -453,7 +513,7 @@ def line_to_html_paragraph(split_line):
     return "<p>{}</p>".format(split_line[1])
 
 
-# Parse modded voice line "ModPlayVoice:S" into an HTML audio
+# Parse modded voice line "ModPlayVoice" into an HTML audio
 def voice_to_html_audio(split_line):
     audio_name = split_line[2].strip().replace('"', "")
     src = voice_path + audio_name + ".ogg"
@@ -464,8 +524,34 @@ def voice_to_html_audio(split_line):
     )
 
 
-def actor_to_html_color(line):
-    return
+# Parse a list of script lines into HTML
+def parse_lines(lines: list[str], output_file: typing.IO):
+    for line in lines:
+        stripped_line = line.strip().replace("\u3000", "")
+        split_line = stripped_line.split(",")
+
+        # Text line
+        if stripped_line.startswith("OutputLine(NULL,"):
+            output_file.write(line_to_html_paragraph(split_line))
+
+        # Actor-color line
+        actor = ACTOR_COLOR_RE.search(line)
+        if actor is not None:
+            output_file.write(color_to_html(actor.group(0)))
+
+        # Voice line
+        if extra_flag and stripped_line.startswith("ModPlayVoiceLS"):
+            output_file.write(voice_to_html_audio(split_line))
+
+        # Call to subscript
+        if evaluate_subscript_condition(stripped_line):
+            subscript_args = extract_subscript_args(stripped_line)
+            if len(subscript_args) == 2:
+                subscript_lines = call_subscript(
+                    subscript_args[0], subscript_args[1])
+                parse_lines(subscript_lines, output_file)
+            else:
+                continue
 
 
 if __name__ == "__main__":
@@ -523,37 +609,24 @@ if __name__ == "__main__":
     # Parse optional out directory arg
     if len(sys.argv) >= 3:
         out_dir = sys.argv[2].rstrip("/")
-
     os.makedirs(os.path.dirname(out_dir + "/"), exist_ok=True)
+
     for script_name in CHAPTERS[chapter]:
-        out_file = open(
+        output_file = open(
             "{}/higurashi_{}.html".format(out_dir, script_name[0]), "w")
         script_file = open(script_path + "{}.txt".format(script_name[0]), "r")
-        lines = script_file.readlines()
 
         html_table += '<a href="./higurashi_{}.html">{}</a>'.format(
             script_name[0], script_name[1]
         )
-        out_file.write(html_body)
-        out_file.write('<a href="./main.html" >All chapters</a>')
+        output_file.write(html_body)
+        output_file.write('<a href="./main.html" >All chapters</a>')
 
-        for line in lines:
-            stripped_line = line.strip().replace("\u3000", "")
-            split_line = stripped_line.split(",")
+        parse_lines(script_file.readlines(), output_file)
 
-            if stripped_line.startswith("OutputLine(NULL,"):  # Text line
-                out_file.write(line_to_html_paragraph(split_line))
-
-            result = ACTOR_COLOR_RE.search(line)
-            if result is not None:
-                out_file.write(color_to_html(result.group(0)))
-
-            if extra_flag and stripped_line.startswith("ModPlayVoiceLS"):
-                out_file.write(voice_to_html_audio(split_line))
-
-        out_file.write('<a href="./main.html" >All chapters</a>')
-        out_file.write("</body>")
-        out_file.close()
+        output_file.write('<a href="./main.html" >All chapters</a>')
+        output_file.write("</body>")
+        output_file.close()
         script_file.close()
 
     main_file = open("{}/main.html".format(out_dir), "w")
