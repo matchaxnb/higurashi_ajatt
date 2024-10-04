@@ -1,3 +1,10 @@
+# Archived as of October 2024
+
+This tool's development has been archived in favor of a [better webabpp rewrite with extended functionality!](https://kitsugo.dev/app/higurashi-extractor/)
+
+The webapp version features better styling, a graphical setup and is entirely contained within a web browser, requiring no downloading or execution of Python scripts.
+**If you want to use the Higurashi Japanese Text Extractor, use the link to the webapp above!**
+
 # Higurashi - Japanese Text Extractor 🇯🇵
 
 This tool allows you to extract all Japanese text and dialogues from the "Higurashi When They Cry" games into an HTML format. The intended usage for this tool is to have the Japanese text of the games in an accessible interface to aid in learning Japanese.
