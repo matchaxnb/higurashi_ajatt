@@ -1,6 +1,6 @@
 # Archived as of October 2024
 
-This tool's development has been archived in favor of a [better webabpp rewrite with extended functionality!](https://kitsugo.dev/app/higurashi-extractor/)
+This tool's development has been archived in favor of a [better webapp rewrite with extended functionality!](https://kitsugo.dev/app/higurashi-extractor/)
 
 The webapp version features better styling, a graphical setup and is entirely contained within a web browser, requiring no downloading or execution of Python scripts.
 **If you want to use the Higurashi Japanese Text Extractor, use the link to the webapp above!**
