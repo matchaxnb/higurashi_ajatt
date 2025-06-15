@@ -8,6 +8,7 @@ import os
 import typing
 
 
+TRANSLATE = os.getenv('TRANSLATE', '0') in ('1', 'true', 'yes')
 CHAPTERS = {
     "onikakushi": [
         ("onik_op", "Opening 1"),
@@ -444,8 +445,28 @@ censor_level = 2
 script_path = ""
 voice_path = ""
 extra_flag = False
-html_body = '<body style="background-color:black;color:white;">'
+html_body = """<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Higurashi (français)</title>
+<style type="text/css">
+body {
+background: #000;
+color: #ccc;
+max-width: 640px;
+margin: 0 auto;
+}
+
+h1 {
+text-align: center;
+}
+a {
+color: #8B0000;
+font-style: underline;
+}
+</style>
+</head><body>"""
+html_body_tail = "</body></html>"
 html_table = '<div style="display:flex;flex-direction:column;" >'
+index_file = "index.html"
 
 
 # Calls a subscript by parsing the subscript file and extracting all relevant lines specified by the dialog_start
@@ -515,6 +536,7 @@ def line_to_html_paragraph(split_line):
 
 # Parse modded voice line "ModPlayVoice" into an HTML audio
 def voice_to_html_audio(split_line):
+    return ""
     audio_name = split_line[2].strip().replace('"', "")
     src = voice_path + audio_name + ".ogg"
     return """<audio controls preload="none">
@@ -526,22 +548,31 @@ def voice_to_html_audio(split_line):
 
 # Parse a list of script lines into HTML
 def parse_lines(lines: list[str], output_file: typing.IO):
+    flag_readnext = False
     for line in lines:
         stripped_line = line.strip().replace("\u3000", "")
         split_line = stripped_line.split(",")
 
-        # Text line
-        if stripped_line.startswith("OutputLine(NULL,"):
+        # Text line (
+        if stripped_line.startswith("OutputLine(NULL,") and TRANSLATE:
+            flag_readnext = True
+        elif stripped_line.startswith("OutputLine(NULL,"):
             output_file.write(line_to_html_paragraph(split_line))
-
+        elif flag_readnext:
+            output_file.write(line_to_html_paragraph(split_line))
+            flag_readnext = False
         # Actor-color line
-        actor = ACTOR_COLOR_RE.search(line)
-        if actor is not None:
-            output_file.write(color_to_html(actor.group(0)))
+        actor = ACTOR_COLOR_RE.findall(line)
+        if actor is not None and actor:
+            if TRANSLATE:
+              idx = 1
+            else:
+              idx = 0
+            output_file.write(color_to_html(actor[idx]))
 
         # Voice line
-        if extra_flag and stripped_line.startswith("ModPlayVoiceLS"):
-            output_file.write(voice_to_html_audio(split_line))
+        #if extra_flag and stripped_line.startswith("ModPlayVoiceLS"):
+        #    output_file.write(voice_to_html_audio(split_line))
 
         # Call to subscript
         if evaluate_subscript_condition(stripped_line):
@@ -586,6 +617,7 @@ if __name__ == "__main__":
                     chapter
                 )
             )
+            voice_path = ""
         else:
             print("Cannot find the 07th-res submodules.")
             exit(1)
@@ -620,16 +652,16 @@ if __name__ == "__main__":
             script_name[0], script_name[1]
         )
         output_file.write(html_body)
-        output_file.write('<a href="./main.html" >All chapters</a>')
+        output_file.write(f'<a href="../{index_file}" >All chapters</a>')
 
         parse_lines(script_file.readlines(), output_file)
 
-        output_file.write('<a href="./main.html" >All chapters</a>')
-        output_file.write("</body>")
+        output_file.write(f'<a href="./{index_file}" >All chapters</a>')
+        output_file.write(html_body_tail)
         output_file.close()
         script_file.close()
 
-    main_file = open("{}/main.html".format(out_dir), "w")
+    main_file = open("{}/{}".format(out_dir, index_file), "w")
     main_file.write(html_body)
     main_file.write(chapter)
     main_file.write(html_table + "</div>" + "</body>")
