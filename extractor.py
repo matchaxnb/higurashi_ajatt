@@ -460,7 +460,14 @@ text-align: center;
 }
 a {
 color: #8B0000;
-font-style: underline;
+text-decoration: underline;
+}
+
+div.speaker {
+font-weight: bold;
+font-size: 1.1rem;
+margin-left: 1em;
+text-decoration: underline;
 }
 
 a.episode {
@@ -576,7 +583,7 @@ def extract_subscript_args(line):
 def color_to_html(input):
     color = COLOR_RE.findall(input)[0]
     character = ACTOR_RE.findall(input)[0]
-    return '<div style="color: {}; font-weight: bold;">{}</div>'.format(
+    return '<div class="speaker" style="color: {}; font-weight: bold;">{}</div>'.format(
         color, character
     )
 
