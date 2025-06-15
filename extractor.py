@@ -462,6 +462,25 @@ a {
 color: #8B0000;
 font-style: underline;
 }
+
+a.episode {
+text-align: center;
+font-size: 1.4rem;
+}
+nav ul {
+text-align: center;
+margin: 0 auto;
+display: block;
+}
+nav li {
+display: inline-block;
+margin: 0 10px;
+min-width: 160px;
+}
+
+nav li a {
+font-weight: bold;
+}
 </style>
 </head><body>"""
 html_body_tail = "</body></html>"
@@ -469,6 +488,39 @@ html_table = '<div style="display:flex;flex-direction:column;" >'
 index_file = "index.html"
 
 
+def build_navigation(chapter, current_position):
+  if chapter not in CHAPTERS:
+    raise ValueError(f"wrong chapter {chapter}")
+  enumerated = list(enumerate(CHAPTERS[chapter]))
+  cur = list(filter(lambda x: x[1][0] == current_position, enumerated))
+  if not cur:
+    raise ValueError(f"wrong position in {chapter}: {current_position}")
+  if len(cur) > 1:
+    raise ValueError(f"duplicate position in {chapter}: {current_position}")
+  cur_index, cur_chap = cur[0]
+  first = cur_index == 0
+  last = cur_index == (len(enumerated) - 1)
+  prev = None
+  nc = None
+  if not first:
+    prev = enumerated[cur_index - 1]
+  if not last:
+    nc = enumerated[cur_index + 1]
+  prev_html = f'<li><a href="higurashi_{prev[1][0]}.html">{prev[1][1]}</a></li>' if prev else '<li>(first chapter)</li>'
+  next_html = f'<li><a href="higurashi_{nc[1][0]}.html">{nc[1][1]}</a></li>' if nc else '<li>(last chapter)</li>'
+  return f"""
+<nav>
+<ul>
+{prev_html}
+<li>{cur_chap[1]}</li>
+{next_html}
+</ul>
+<ul>
+<li><a href="index.html">Chapter index</a></li>
+<li><a href="../index.html">List of chapters</a></li>
+</ul>
+</nav>
+"""
 # Calls a subscript by parsing the subscript file and extracting all relevant lines specified by the dialog_start
 # Returns a list of all lines occuring in that dialog
 def call_subscript(subscript_filename: str, dialog_start: str) -> list[str]:
@@ -549,7 +601,7 @@ def voice_to_html_audio(split_line):
 # Parse a list of script lines into HTML
 def parse_lines(lines: list[str], output_file: typing.IO):
     flag_readnext = False
-    for line in lines:
+    for lnum, line in enumerate(lines):
         stripped_line = line.strip().replace("\u3000", "")
         split_line = stripped_line.split(",")
 
@@ -568,7 +620,11 @@ def parse_lines(lines: list[str], output_file: typing.IO):
               idx = 1
             else:
               idx = 0
-            output_file.write(color_to_html(actor[idx]))
+            try:
+              output_file.write(color_to_html(actor[idx]))
+            except:
+              print(output_file, actor, "error", idx, "lnum", lnum)
+              raise
 
         # Voice line
         #if extra_flag and stripped_line.startswith("ModPlayVoiceLS"):
@@ -652,17 +708,19 @@ if __name__ == "__main__":
             script_name[0], script_name[1]
         )
         output_file.write(html_body)
-        output_file.write(f'<a href="../{index_file}" >All chapters</a>')
+        output_file.write(build_navigation(chapter, script_name[0]))
 
         parse_lines(script_file.readlines(), output_file)
 
-        output_file.write(f'<a href="./{index_file}" >All chapters</a>')
+        output_file.write(build_navigation(chapter, script_name[0]))
         output_file.write(html_body_tail)
         output_file.close()
         script_file.close()
 
     main_file = open("{}/{}".format(out_dir, index_file), "w")
     main_file.write(html_body)
-    main_file.write(chapter)
-    main_file.write(html_table + "</div>" + "</body>")
+    main_file.write(chapter.capitalize())
+    main_file.write(html_table)
+    main_file.write('<a class="episode" href="../">All episodes</a>')
+    main_file.write(html_body_tail)
     main_file.close()
