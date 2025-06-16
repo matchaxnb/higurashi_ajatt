@@ -646,11 +646,12 @@ def remove_frontback_quotes(s: str) -> str:
 # Parse Japanese "OutputLine" into an HTML paragraph
 def line_to_html_paragraph(split_line, optional_bg=None, optional_charas=None):
     extra = ''
+    line_text = split_line[1].split('",')[0]
     if optional_bg:
       extra += f' data-bg="{remove_quotes_s(optional_bg)}"'
     if optional_charas:
       extra += f' data-charas="{",".join(remove_quotes(optional_charas))}"'
-    return f"<p{extra}>{remove_frontback_quotes(split_line[1])}</p>\n"
+    return f"<p{extra}>{remove_frontback_quotes(line_text)}</p>\n"
 
 
 # Parse modded voice line "ModPlayVoice" into an HTML audio
@@ -673,15 +674,16 @@ def parse_lines(lines: list[str], output_file: typing.IO):
     charas_dirty = False
     for lnum, line in enumerate(lines):
         stripped_line = line.strip().replace("\u3000", "")
-        split_line = stripped_line.split(",")
+        split_line = stripped_line.split(",", 1)
+        split_line_full = stripped_line.split(",", 2)
 
         # Which background is active
         if stripped_line.startswith("DrawSceneWithMask"):
-          bg_to_attach = split_line[0].split('"', 1)[1]
+          bg_to_attach = split_line_full[0].split('"', 1)[1]
         elif stripped_line.startswith("DrawScene"):
-          bg_to_attach = split_line[0].split('"', 1)[1]
+          bg_to_attach = split_line_full[0].split('"', 1)[1]
         elif stripped_line.startswith('ModDrawCharacter'):
-          charas_to_attach.append(split_line[2])
+          charas_to_attach.append(split_line_full[2])
           charas_dirty = True
         elif stripped_line.startswith('FadeBustshot'):
           charas_to_attach = []
