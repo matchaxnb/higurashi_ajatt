@@ -470,6 +470,14 @@ margin-left: 1em;
 text-decoration: underline;
 }
 
+div.guardian {
+position: fixed;
+left: 0px;
+right:0px;
+top:0px;
+height:1px;
+font-size: 4pt;
+}
 a.episode {
 text-align: center;
 font-size: 1.4rem;
@@ -489,8 +497,45 @@ nav li a {
 font-weight: bold;
 }
 </style>
-</head><body>"""
-html_body_tail = "</body></html>"
+</head><body><div class="guardian">&nbsp;</div> """
+html_body_tail = """
+<script>
+let lastScrollY = window.scrollY;
+let lastScrollDirection = null;
+
+window.addEventListener('scroll', () => {
+  lastScrollDirection = window.scrollY > lastScrollY ? 'down' : 'up';
+  lastScrollY = window.scrollY;
+});
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    if (Object.keys(entry.target.dataset).length == 0) return;
+    const direction = lastScrollDirection === 'down' ? 'up' : 'down';
+    console.log({
+      dataset: entry.target.dataset,
+      direction: direction
+    });
+    if (entry.target.dataset.charas !== undefined) {
+      window.activeCharas = entry.target.dataset.charas.split(',');
+    }
+    if (entry.target.dataset.bg !== undefined) {
+      window.activeBg = entry.target.dataset.bg;
+    }
+    
+  });
+}, {
+  root: null,
+  rootMargin: '0px 0px -100% 0px', // 1px line at viewport top
+  threshold: 0
+});
+
+document.querySelectorAll('p').forEach(el => {
+  observer.observe(el);
+});
+</script>
+</body></html>"""
 html_table = '<div style="display:flex;flex-direction:column;" >'
 index_file = "index.html"
 
@@ -588,9 +633,24 @@ def color_to_html(input):
     )
 
 
+def remove_quotes(l: list) -> list:
+  return [remove_quotes_s(a) for a in l]
+
+def remove_quotes_s(s: str) -> str:
+  return s.replace('"', '').strip()
+
+def remove_frontback_quotes(s: str) -> str:
+  "yeah dirty"
+  return s.strip().replace('\\"', '|').strip('"').replace('|', '"')
+
 # Parse Japanese "OutputLine" into an HTML paragraph
-def line_to_html_paragraph(split_line):
-    return "<p>{}</p>".format(split_line[1])
+def line_to_html_paragraph(split_line, optional_bg=None, optional_charas=None):
+    extra = ''
+    if optional_bg:
+      extra += f' data-bg="{remove_quotes_s(optional_bg)}"'
+    if optional_charas:
+      extra += f' data-charas="{",".join(remove_quotes(optional_charas))}"'
+    return f"<p{extra}>{remove_frontback_quotes(split_line[1])}</p>\n"
 
 
 # Parse modded voice line "ModPlayVoice" into an HTML audio
@@ -608,17 +668,36 @@ def voice_to_html_audio(split_line):
 # Parse a list of script lines into HTML
 def parse_lines(lines: list[str], output_file: typing.IO):
     flag_readnext = False
+    bg_to_attach = None
+    charas_to_attach = []
+    charas_dirty = False
     for lnum, line in enumerate(lines):
         stripped_line = line.strip().replace("\u3000", "")
         split_line = stripped_line.split(",")
 
+        # Which background is active
+        if stripped_line.startswith("DrawSceneWithMask"):
+          bg_to_attach = split_line[0].split('"', 1)[1]
+        elif stripped_line.startswith("DrawScene"):
+          bg_to_attach = split_line[0].split('"', 1)[1]
+        elif stripped_line.startswith('ModDrawCharacter'):
+          charas_to_attach.append(split_line[2])
+          charas_dirty = True
+        elif stripped_line.startswith('FadeBustshot'):
+          charas_to_attach = []
         # Text line (
         if stripped_line.startswith("OutputLine(NULL,") and TRANSLATE:
             flag_readnext = True
         elif stripped_line.startswith("OutputLine(NULL,"):
-            output_file.write(line_to_html_paragraph(split_line))
+            output_file.write(line_to_html_paragraph(split_line, bg_to_attach, charas_to_attach if charas_dirty else []))
+            charas_dirty = False
+            bg_to_attach = None
+            # charas_to_attach = []
         elif flag_readnext:
-            output_file.write(line_to_html_paragraph(split_line))
+            output_file.write(line_to_html_paragraph(split_line, bg_to_attach, charas_to_attach if charas_dirty else []))
+            charas_dirty = False
+            bg_to_attach = None
+            # charas_to_attach = []
             flag_readnext = False
         # Actor-color line
         actor = ACTOR_COLOR_RE.findall(line)
